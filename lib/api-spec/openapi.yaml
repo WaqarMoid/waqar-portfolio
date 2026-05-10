@@ -1,0 +1,512 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Waqar Moid Portfolio API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: blog
+    description: Blog post operations
+  - name: projects
+    description: Creative projects operations
+  - name: goodreads
+    description: Goodreads bookshelf
+  - name: letterboxd
+    description: Letterboxd film log
+  - name: spotify
+    description: Spotify now playing / recent tracks
+  - name: auth
+    description: Admin authentication
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Blog ───────────────────────────────────────────────────────────────────
+  /blog:
+    get:
+      operationId: listBlogPosts
+      tags: [blog]
+      summary: List all blog posts
+      responses:
+        "200":
+          description: List of blog posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlogPost"
+    post:
+      operationId: createBlogPost
+      tags: [blog]
+      summary: Create a new blog post (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogPostInput"
+      responses:
+        "201":
+          description: Created blog post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "401":
+          description: Unauthorized
+
+  /blog/{slug}:
+    get:
+      operationId: getBlogPost
+      tags: [blog]
+      summary: Get a single blog post by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blog post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBlogPost
+      tags: [blog]
+      summary: Update a blog post (admin only)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogPostUpdate"
+      responses:
+        "200":
+          description: Updated blog post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBlogPost
+      tags: [blog]
+      summary: Delete a blog post (admin only)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  # ─── Projects ────────────────────────────────────────────────────────────────
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Upload a new project (admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProjectUploadForm"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          description: Unauthorized
+
+  /projects/{id}:
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /projects/{id}/verify-password:
+    post:
+      operationId: verifyProjectPassword
+      tags: [projects]
+      summary: Verify password for protected project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectPasswordCheck"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordVerifyResult"
+
+  # ─── Goodreads ──────────────────────────────────────────────────────────────
+  /goodreads:
+    get:
+      operationId: getGoodreadsBooks
+      tags: [goodreads]
+      summary: Get books from Goodreads shelf
+      parameters:
+        - name: shelf
+          in: query
+          required: false
+          schema:
+            type: string
+            default: currently-reading
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+  # ─── Letterboxd ─────────────────────────────────────────────────────────────
+  /letterboxd:
+    get:
+      operationId: getLetterboxdFilms
+      tags: [letterboxd]
+      summary: Get recently watched films from Letterboxd
+      responses:
+        "200":
+          description: List of films
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Film"
+
+  # ─── Spotify ────────────────────────────────────────────────────────────────
+  /spotify/now-playing:
+    get:
+      operationId: getSpotifyNowPlaying
+      tags: [spotify]
+      summary: Get currently playing Spotify track
+      responses:
+        "200":
+          description: Currently playing track (or not playing)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpotifyNowPlaying"
+
+  /spotify/recent:
+    get:
+      operationId: getSpotifyRecent
+      tags: [spotify]
+      summary: Get recently played Spotify tracks
+      responses:
+        "200":
+          description: Recently played tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SpotifyTrack"
+
+  # ─── Auth ───────────────────────────────────────────────────────────────────
+  /auth/verify:
+    post:
+      operationId: verifyAdminPassword
+      tags: [auth]
+      summary: Verify admin password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAuthInput"
+      responses:
+        "200":
+          description: Auth result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+        "401":
+          description: Unauthorized
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    # ─── Blog ─────────────────────────────────────────────────────────────────
+    BlogPost:
+      type: object
+      required: [id, title, slug, body, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        body:
+          type: string
+        tags:
+          type: ["array", "null"]
+          items:
+            type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+        readTimeMinutes:
+          type: ["integer", "null"]
+
+    BlogPostInput:
+      type: object
+      required: [title, body]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    BlogPostUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    # ─── Projects ─────────────────────────────────────────────────────────────
+    Project:
+      type: object
+      required: [id, title, fileUrl, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        tags:
+          type: ["array", "null"]
+          items:
+            type: string
+        fileUrl:
+          type: string
+        fileName:
+          type: ["string", "null"]
+        fileType:
+          type: ["string", "null"]
+        isProtected:
+          type: ["boolean", "null"]
+        createdAt:
+          type: string
+
+    ProjectUploadForm:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        tags:
+          type: string
+        password:
+          type: string
+        fileUrl:
+          type: string
+        fileName:
+          type: string
+        fileType:
+          type: string
+
+    ProjectPasswordCheck:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    PasswordVerifyResult:
+      type: object
+      required: [valid]
+      properties:
+        valid:
+          type: boolean
+
+    # ─── Goodreads ────────────────────────────────────────────────────────────
+    Book:
+      type: object
+      required: [title, author, link]
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        cover:
+          type: ["string", "null"]
+        link:
+          type: string
+
+    # ─── Letterboxd ──────────────────────────────────────────────────────────
+    Film:
+      type: object
+      required: [title, link]
+      properties:
+        title:
+          type: string
+        year:
+          type: ["string", "null"]
+        poster:
+          type: ["string", "null"]
+        rating:
+          type: ["string", "null"]
+        link:
+          type: string
+
+    # ─── Spotify ─────────────────────────────────────────────────────────────
+    SpotifyNowPlaying:
+      type: object
+      required: [isPlaying]
+      properties:
+        isPlaying:
+          type: boolean
+        title:
+          type: ["string", "null"]
+        artist:
+          type: ["string", "null"]
+        album:
+          type: ["string", "null"]
+        albumArt:
+          type: ["string", "null"]
+        link:
+          type: ["string", "null"]
+
+    SpotifyTrack:
+      type: object
+      required: [title, artist, link]
+      properties:
+        title:
+          type: string
+        artist:
+          type: string
+        albumArt:
+          type: ["string", "null"]
+        link:
+          type: string
+
+    # ─── Auth ─────────────────────────────────────────────────────────────────
+    AdminAuthInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    AdminAuthResult:
+      type: object
+      required: [success, token]
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
