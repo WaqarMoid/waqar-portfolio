@@ -248,34 +248,82 @@ function ProjectCard({ project, isAdmin, onDelete }: { project: any, isAdmin: bo
 function UploadModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient();
   const createProject = useCreateProject();
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "Presentation",
     tags: "",
-    fileUrl: "",
-    fileName: "",
-    fileType: "",
     password: ""
   });
   
   const [isProtected, setIsProtected] = useState(false);
 
-  const handleSubmit = () => {
-    if (!formData.title) return;
-    
-    createProject.mutate({
-      data: {
-        ...formData,
-        password: isProtected ? formData.password : undefined
-      }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
-        onOpenChange(false);
-      }
+  const resolveUploadUrl = () => {
+    const base = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "");
+    return base ? `${base}/projects/upload` : "/api/projects/upload";
+  };
+
+  const uploadToApi = async (file: File) => {
+    const payload = new FormData();
+    payload.append("file", file);
+
+    const headers = new Headers();
+    const adminToken = typeof window !== "undefined" ? sessionStorage.getItem("adminToken") : null;
+    if (adminToken) {
+      headers.set("x-admin-token", adminToken);
+    }
+
+    const response = await fetch(resolveUploadUrl(), {
+      method: "POST",
+      headers,
+      body: payload,
     });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || "Upload failed");
+    }
+
+    return (await response.json()) as {
+      fileUrl: string;
+      fileName?: string | null;
+      fileType?: string | null;
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.title) return;
+    if (!uploadFile) {
+      setUploadError("Select a file to upload.");
+      return;
+    }
+
+    setUploadError("");
+    setIsUploading(true);
+
+    try {
+      const uploadResult = await uploadToApi(uploadFile);
+      await createProject.mutateAsync({
+        data: {
+          ...formData,
+          fileUrl: uploadResult.fileUrl,
+          fileName: uploadResult.fileName ?? uploadFile.name,
+          fileType: uploadResult.fileType ?? uploadFile.name.split(".").pop() ?? "",
+          password: isProtected ? formData.password : undefined,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+      onOpenChange(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      setUploadError(message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -324,25 +372,22 @@ function UploadModal({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
           </div>
           
           <div className="space-y-4">
-            <Input 
-              placeholder="File URL *" 
-              value={formData.fileUrl}
-              onChange={e => setFormData({...formData, fileUrl: e.target.value})}
-              className="bg-[#111318] border-[#2a2f3d] text-[#e8e6e1]"
-            />
-            <div className="flex gap-2">
-              <Input 
-                placeholder="File Name" 
-                value={formData.fileName}
-                onChange={e => setFormData({...formData, fileName: e.target.value})}
-                className="bg-[#111318] border-[#2a2f3d] text-[#e8e6e1]"
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-[#9a9db0] file:mr-3 file:rounded-md file:border file:border-[#2a2f3d] file:bg-[#111318] file:px-3 file:py-2 file:text-[#e8e6e1] hover:file:border-[#c9a96e]"
               />
-              <Input 
-                placeholder="Type (pdf, etc)" 
-                value={formData.fileType}
-                onChange={e => setFormData({...formData, fileType: e.target.value})}
-                className="bg-[#111318] border-[#2a2f3d] text-[#e8e6e1] w-32"
-              />
+              <p className="text-xs text-[#9a9db0]">
+                Allowed: pdf, doc, docx, ppt, pptx, mp4. Max 100 MB.
+              </p>
+              {uploadFile && (
+                <p className="text-xs text-[#a8c5e0]">Selected: {uploadFile.name}</p>
+              )}
+              {uploadError && (
+                <p className="text-xs text-[#e07070]">{uploadError}</p>
+              )}
             </div>
           </div>
           
@@ -369,8 +414,8 @@ function UploadModal({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-[#9a9db0] hover:text-[#e8e6e1]">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={createProject.isPending || !formData.title} className="bg-[#c9a96e] text-[#111318] hover:bg-[#a8c5e0]">
-            {createProject.isPending ? "Uploading..." : "Upload"}
+          <Button onClick={handleSubmit} disabled={isUploading || createProject.isPending || !formData.title} className="bg-[#c9a96e] text-[#111318] hover:bg-[#a8c5e0]">
+            {isUploading || createProject.isPending ? "Uploading..." : "Upload"}
           </Button>
         </div>
       </DialogContent>
