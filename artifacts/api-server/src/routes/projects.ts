@@ -75,7 +75,7 @@ router.get("/projects", async (req, res): Promise<void> => {
   res.json(ListProjectsResponse.parse(filtered.map(toApiProject)));
 });
 
-router.post("/projects", async (req, res): Promise<void> => {
+router.post("/projects", upload.none(), async (req, res): Promise<void> => {
   const adminToken = req.headers["x-admin-token"];
   if (!adminToken) {
     res.status(401).json({ error: "Unauthorized" });
