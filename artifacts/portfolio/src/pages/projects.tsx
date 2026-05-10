@@ -284,8 +284,13 @@ function UploadModal({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
     });
 
     if (!response.ok) {
-      const message = await response.text();
-      throw new Error(message || "Upload failed");
+        let message = "";
+        try {
+          const data = await response.json();
+          message = data.error || data.message;
+        } catch {
+          message = await response.text();
+        }
     }
 
     return (await response.json()) as {

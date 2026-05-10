@@ -196,7 +196,8 @@ router.use((err: unknown, _req, res, next): void => {
   }
 
   if (err) {
-    res.status(500).json({ error: "Unexpected upload error" });
+    console.error("Upload error caught by handler:", err);
+    res.status(500).json({ error: `Unexpected upload error: ${err instanceof Error ? err.message : String(err)}` });
     return;
   }
 
