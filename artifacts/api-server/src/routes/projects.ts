@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { db, projectsTable } from "@workspace/db";
 import {
@@ -185,7 +185,7 @@ router.post(
   },
 );
 
-router.use((err: unknown, _req, res, next): void => {
+router.use((err: unknown, _req: Request, res: Response, next: NextFunction): void => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
       res.status(400).json({ error: "File exceeds 100 MB limit" });
