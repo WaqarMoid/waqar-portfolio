@@ -1,1 +1,1 @@
-{ "extends": "../tsconfig.json", "compilerOptions": { "noEmit": false, "allowImportingTsExtensions": false } }
+{ "extends": "../tsconfig.json", "compilerOptions": { "noEmit": false, "allowImportingTsExtensions": false, "esModuleInterop": true, "noImplicitAny": false, "moduleResolution": "node" } }
