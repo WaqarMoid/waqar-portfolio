@@ -4,7 +4,7 @@ import {
   GetSpotifyNowPlayingResponse,
   GetSpotifyRecentResponse,
 } from "@workspace/api-zod";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 

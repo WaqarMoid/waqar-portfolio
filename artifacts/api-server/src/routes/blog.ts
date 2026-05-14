@@ -12,7 +12,7 @@ import {
   DeleteBlogPostParams,
 } from "@workspace/api-zod";
 import slugify from "slugify";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 

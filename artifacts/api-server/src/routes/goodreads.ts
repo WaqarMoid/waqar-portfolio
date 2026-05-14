@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import fetch from "node-fetch";
 import { parseStringPromise } from "xml2js";
 import { GetGoodreadsBooksResponse } from "@workspace/api-zod";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
