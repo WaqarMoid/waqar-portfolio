@@ -263,8 +263,7 @@ function UploadModal({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
   const [isProtected, setIsProtected] = useState(false);
 
   const resolveUploadUrl = () => {
-    const base = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "");
-    return base ? `${base}/api/projects/upload` : "/api/projects/upload";
+    return "/api/projects/upload";
   };
 
   const uploadToApi = async (file: File) => {

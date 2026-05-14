@@ -3,9 +3,5 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-if (apiBaseUrl) {
-	setBaseUrl(apiBaseUrl);
-}
-
-createRoot(document.getElementById("root")!).render(<App />);
+// The API is now hosted locally on Vercel via Serverless Functions!
+setBaseUrl("");
